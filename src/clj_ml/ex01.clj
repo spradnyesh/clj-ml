@@ -1,25 +1,18 @@
 (ns clj-ml.ex01
-  (:require [incanter.core :as i]
+  (:require [clj-ml.utils :as u]
+            [incanter.core :as i]
             [incanter.stats :as s]
             [incanter.charts :as c]
             [incanter.io :as io]
             [clojure.core.matrix :as m]
             [clojure.core.matrix.operators :as mo]))
 
-(defn cost [X y theta]
-  (let [h-minus-y (mo/- (m/mmul X theta) y)]
-    (/ (m/esum (mo/* h-minus-y h-minus-y)) 2 (.elementCount y))))
+(defn- h-theta-x [X theta]
+  (m/mmul X theta))
 
-;; elementwise multiple col-vector w/ each column of matrix
-;; returns a "vector", not #Vector or #Matrix
-(defn- vector-mmult [v m]
-  (when (= (.elementCount v) (. m (getShape 0)))
-    (loop [n (. m (getShape 1))
-           rslt []]
-      (if (zero? n)
-        (reverse rslt)
-        (recur (dec n)
-               (conj rslt (mo/* v (i/$ (dec n) m))))))))
+(defn cost [X y theta]
+  (let [h-minus-y (mo/- (h-theta-x X theta) y)]
+    (/ (m/esum (mo/* h-minus-y h-minus-y)) 2 (.elementCount y))))
 
 (defn gradient-descent [X y theta alpha num-iters]
   (let [m (.elementCount y)]
@@ -27,14 +20,14 @@
            theta theta]
       (if (zero? n)
         theta
-        (let [h-minus-y (mo/- (m/mmul X theta) y) ; cached for next st
-              tmp (vector-mmult h-minus-y X) ; cached for next st
+        (let [h-minus-y (mo/- (h-theta-x X theta) y) ; cached for next st
+              tmp (u/vector-mmult h-minus-y X) ; cached for next st
               sum (map (comp m/esum #(nth tmp %)) (range (count tmp)))]
           (recur (dec n)
                  (mo/- theta (mo/* alpha (map #(/ % m) sum)))))))))
 
 (defn univariate [alpha n]
-  (let [data (i/to-matrix (io/read-dataset "resources/mlclass-ex1/ex1data1.txt"))
+  (let [data (i/to-matrix (io/read-dataset "resources/ex1data1.txt"))
         m (i/nrow data)
         X (i/to-matrix (i/conj-cols (repeat m 1) (i/$ 0 data))) ; including x0
         y (i/$ 1 data)
@@ -53,7 +46,7 @@
                           (m/div (m/sub col mean) sd)))))))
 
 (defn multivariate [alpha n]
-  (let [data (i/to-matrix (io/read-dataset "resources/mlclass-ex1/ex1data2.txt"))
+  (let [data (i/to-matrix (io/read-dataset "resources/ex1data2.txt"))
         m (i/nrow data)
         y (i/$ (dec (i/ncol data)) data)
         X (->> data
@@ -65,7 +58,7 @@
     (gradient-descent X y theta alpha n)))
 
 (defn normal []
-  (let [data (i/to-matrix (io/read-dataset "resources/mlclass-ex1/ex1data2.txt"))
+  (let [data (i/to-matrix (io/read-dataset "resources/ex1data2.txt"))
         m (i/nrow data)
         y (i/$ (dec (i/ncol data)) data)
         X (->> data

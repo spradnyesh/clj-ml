@@ -63,3 +63,15 @@
                i/to-matrix)
         theta (i/matrix (repeat (i/ncol X) 0))]
     (gradient-descent X y theta alpha n)))
+
+(defn normal []
+  (let [data (i/to-matrix (io/read-dataset "resources/mlclass-ex1/ex1data2.txt"))
+        m (i/nrow data)
+        y (i/$ (dec (i/ncol data)) data)
+        X (->> data
+               (i/$ [:not (dec (i/ncol data))]) ; remove "y"
+               (i/conj-cols (repeat m 1)) ; including x0
+               i/to-matrix)]
+    (m/mmul (m/mmul (m/inverse (m/mmul (m/transpose X) X))
+                    (m/transpose X))
+            y)))
